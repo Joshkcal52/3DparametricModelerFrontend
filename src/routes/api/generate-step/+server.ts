@@ -15,17 +15,16 @@ export const POST: RequestHandler = async ({ request }) => {
   if (contentType.includes('application/json')) {
     const data = await r.json();
     
-    // If backend provides a file path, convert it to a download URL
+    // If backend provides a file path, convert it to a public URL for viewing
     if (data.file_path || data.path) {
       const filePath = data.file_path || data.path;
       const filename = data.filename || filePath.split('/').pop() || 'tank.step';
       
-      // Ensure file path starts with / for proper URL construction
-      const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
-      
-      // Use proxy endpoint to serve the file (handles CORS and proper headers)
+      // Return public URL for viewer and download
+      // The viewer can access /generated/<filename> and download uses /api/download-step
       return new Response(JSON.stringify({
-        download_url: `/api/download-step?path=${encodeURIComponent(normalizedPath)}`,
+        download_url: `/api/download-step?path=${encodeURIComponent(filePath.startsWith('/') ? filePath : `/${filePath}`)}`,
+        view_url: `/generated/${filename}`,
         filename: filename
       }), {
         status: 200,

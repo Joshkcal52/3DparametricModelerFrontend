@@ -1,18 +1,15 @@
 <script lang="ts">
   import '../app.css';
-  export let data;
 </script>
 
 <div class="min-h-screen bg-white text-black">
-  <header class="border-b border-black/10 bg-white sticky top-0 z-10 backdrop-blur-sm">
-    <div class="mx-auto max-w-7xl px-6 py-5 flex items-center gap-3">
-      <div class="flex items-center gap-3">
-        <a href="/" class="flex items-center gap-3">
-          <img src="/logo.png" alt="Coyote Tanks Inc." class="h-16 w-auto" />
-          <h1 class="text-xl font-semibold tracking-tight text-black">CoyoteCAD</h1>
-        </a>
-      </div>
-      <nav class="ml-auto flex items-center gap-2">
+  <header class="border-b border-black/10 bg-white sticky top-0 z-50 backdrop-blur-sm">
+    <div class="mx-auto max-w-7x1 px-40 py-3 flex items-center justify-between">
+      <a href="/" class="flex items-center">
+        <img src="/logo.png" alt="Coyote Tanks Inc." class="h-24 w-auto" />
+      </a>
+      <h1 class="coyote-title text-3xl font-semibold tracking-tight absolute left-1/2 transform -translate-x-1/2">Coyote / CAD</h1>
+      <nav class="flex items-center gap-2">
         <a 
           href="/" 
           class="px-4 py-2 text-base font-medium text-zinc-600 hover:text-black hover:bg-zinc-50 rounded-lg transition-colors"
@@ -30,7 +27,7 @@
     </div>
   </header>
 
-  <main class="mx-auto max-w-7xl px-6 py-10">
+  <main class="mx-auto max-w-[1600px] px-4 py-10">
     <slot />
   </main>
 

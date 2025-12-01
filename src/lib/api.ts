@@ -54,7 +54,7 @@ export async function updatePricing(pricing: any): Promise<void> {
   if (!r.ok) throw new Error('Failed to update pricing');
 }
 
-export async function generateStep(body: TankParams): Promise<{ href: string; filename?: string }> {
+export async function generateStep(body: TankParams): Promise<{ href: string; viewUrl?: string; filename?: string }> {
   const r = await fetch(`${BASE}/generate-step`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -69,21 +69,22 @@ export async function generateStep(body: TankParams): Promise<{ href: string; fi
   if (ct.includes('application/json')) {
     const data = await r.json();
     const href: string = data.download_url || data.url || data.href || '';
+    const viewUrl: string = data.view_url || href; // Use view_url for viewer, fallback to download_url
     const filename: string | undefined = data.filename || undefined;
     
     if (!href) {
       throw new Error('Backend did not provide a download URL');
     }
     
-    // Return the download URL (already processed by proxy)
-    return { href, filename };
+    // Return both download URL and view URL
+    return { href, viewUrl, filename };
   }
 
   // Fallback: treat as file stream and build a blob URL
   const blob = await r.blob();
   const filename = (r.headers.get('content-disposition') || '').match(/filename="?([^";]+)"?/i)?.[1];
   const url = browser ? URL.createObjectURL(blob) : '';
-  return { href: url, filename };
+  return { href: url, viewUrl: url, filename };
 }
 
 

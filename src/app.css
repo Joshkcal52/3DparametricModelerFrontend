@@ -1,6 +1,17 @@
+/* postcss-ignore */
 @tailwind base;
+/* postcss-ignore */
 @tailwind components;
+/* postcss-ignore */
 @tailwind utilities;
+
+@font-face {
+  font-family: 'Ethnocentric';
+  src: url('/fonts/Ethnocentric-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 @layer base {
   :root {
@@ -60,6 +71,37 @@
   input[type="checkbox"] {
     @apply w-4 h-4 rounded border-black/20 text-black focus:ring-black/20;
     @apply cursor-pointer transition-colors;
+  }
+
+  /* CoyoteCAD title with industrial font and metallic shine */
+  .coyote-title {
+    font-family: 'Ethnocentric', monospace;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: linear-gradient(
+      90deg,
+      #000000 0%,
+      #334155 30%,
+      #475569 45%,
+      #cbd5e1 50%,
+      #475569 55%,
+      #1e293b 70%,
+      #000000 70%
+    );
+    background-size: 400% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine-right 40s ease-in-out infinite;
+  }
+
+  @keyframes shine-right {
+    0%, 95% {
+      background-position: -100% 50%;
+    }
+    2.5%, 5% {
+      background-position: 200% 50%;
+    }
   }
 }
 
