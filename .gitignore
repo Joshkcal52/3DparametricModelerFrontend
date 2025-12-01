@@ -1,0 +1,42 @@
+# Node
+node_modules/
+npm-debug.log
+pnpm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# SvelteKit / Vite
+.svelte-kit/
+.vite/
+dist/
+build/
+.env
+.env.*      # Ignore all envs (except example)
+!.env.example
+
+# Logs
+logs/
+*.log
+*.log.*
+log/
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Editor junk
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional: Cursor workspaces
+.cursor/
+.cursorignore
