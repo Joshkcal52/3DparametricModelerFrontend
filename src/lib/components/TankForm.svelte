@@ -1,6 +1,7 @@
 <script lang="ts">
   import { z } from 'zod';
   import type { TankParams, RoofType, MaterialMap } from '$lib/types';
+  import Tooltip from '$lib/components/Tooltip.svelte';
 
   export let materials: MaterialMap; // key → { name }
   export let onQuote: (p: TankParams) => Promise<void>;
@@ -189,7 +190,10 @@
   <div class="space-y-8">
     <!-- Basic Dimensions -->
     <div>
-      <h3 class="text-sm font-semibold text-black mb-4 uppercase tracking-wide">Basic Dimensions</h3>
+      <div class="flex items-center gap-2 mb-4">
+        <h3 class="text-sm font-semibold text-black uppercase tracking-wide">Basic Dimensions</h3>
+        <Tooltip text="Set the shell diameter, height, and wall thickness in inches. These drive capacity and weight calculations." />
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <label class="grid gap-2">
           <span class="text-sm font-medium text-black">Diameter (in)</span>
@@ -210,7 +214,10 @@
 
     <!-- Bottom & Roof -->
     <div>
-      <h3 class="text-sm font-semibold text-black mb-4 uppercase tracking-wide">Bottom & Roof</h3>
+      <div class="flex items-center gap-2 mb-4">
+        <h3 class="text-sm font-semibold text-black uppercase tracking-wide">Bottom & Roof</h3>
+        <Tooltip text="Choose construction details for the tank bottom and roof. Cone roofs also need a slope to define the peak." />
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <label class="grid gap-2">
           <span class="text-sm font-medium text-black">Bottom thickness (in)</span>
@@ -241,7 +248,10 @@
 
     <!-- Material Selection -->
     <div>
-      <h3 class="text-sm font-semibold text-black mb-4 uppercase tracking-wide">Material</h3>
+      <div class="flex items-center gap-2 mb-4">
+        <h3 class="text-sm font-semibold text-black uppercase tracking-wide">Material</h3>
+        <Tooltip text="Select a material preset to use its density and cost when generating STEP files and quotes." />
+      </div>
       <label class="grid gap-2">
         <span class="text-sm font-medium text-black">Material</span>
         <select class="input" bind:value={form.material_key}>
@@ -269,7 +279,10 @@
 
       {#if includeManway && form.manway}
         <div>
-          <h4 class="text-sm font-semibold text-black uppercase tracking-wide mb-4">Manway Specifications</h4>
+          <div class="flex items-center gap-2 mb-4">
+            <h4 class="text-sm font-semibold text-black uppercase tracking-wide">Manway Specifications</h4>
+            <Tooltip text="Enter the manway opening dimensions if you need one cut into the shell. Leaving it unchecked removes the manway." />
+          </div>
           <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
             <label class="grid gap-2">
               <span class="text-sm font-medium text-black">Width (in)</span>

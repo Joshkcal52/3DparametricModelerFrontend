@@ -37,7 +37,8 @@ const DEFAULT_PRICING: PricingConfig = {
   adders: {
     overhead_pct: 0,
     profit_pct: 0,
-    paint_pct: 0
+    paint_pct: 0,
+    paint: null
   },
   defaults: {
     material_key: ''
@@ -98,7 +99,20 @@ const normalizePricingConfig = (raw: unknown): PricingConfig => {
     adders: {
       overhead_pct: toNumber(data.adders?.overhead_pct),
       profit_pct: toNumber(data.adders?.profit_pct),
-      paint_pct: toNumber(data.adders?.paint_pct)
+      paint_pct:
+        data.adders && 'paint_pct' in (data.adders as Record<string, unknown>)
+          ? toNumber((data.adders as Record<string, unknown>).paint_pct)
+          : undefined,
+      paint:
+        data.adders?.paint && typeof data.adders.paint === 'object'
+          ? {
+              price_per_gallon: toNumber((data.adders.paint as Record<string, unknown>).price_per_gallon, 0),
+              coverage_sqft_per_gallon: toNumber(
+                (data.adders.paint as Record<string, unknown>).coverage_sqft_per_gallon,
+                350
+              )
+            }
+          : null
     },
     defaults: {
       material_key: data.defaults?.material_key ?? DEFAULT_PRICING.defaults.material_key

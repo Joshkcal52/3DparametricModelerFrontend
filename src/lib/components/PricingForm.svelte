@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PricingConfig } from '$lib/types';
+  import Tooltip from '$lib/components/Tooltip.svelte';
 
   export let pricing: PricingConfig;
   export let onSave: (p: PricingConfig) => Promise<void>;
@@ -9,9 +10,28 @@
 
   // Watch for pricing changes from parent
   $: localPricing = structuredClone(pricing);
+$: {
+  if (typeof localPricing.adders.paint === 'undefined') {
+    localPricing.adders.paint = null;
+  }
+}
+
+const DEFAULT_PAINT_PRICING = {
+  price_per_gallon: 45,
+  coverage_sqft_per_gallon: 350
+};
+
+let paintMode: 'percentage' | 'per-gallon' = localPricing.adders.paint ? 'per-gallon' : 'percentage';
+$: paintMode = localPricing.adders.paint ? 'per-gallon' : 'percentage';
 
   function handleSave() {
-    onSave(localPricing);
+  const payload = structuredClone(localPricing);
+  if (paintMode === 'per-gallon') {
+    payload.adders.paint_pct = undefined;
+  } else {
+    payload.adders.paint = null;
+  }
+  onSave(payload);
   }
 
   function addMaterial() {
@@ -27,6 +47,54 @@
     delete localPricing.materials[key];
     localPricing = { ...localPricing }; // Trigger reactivity
   }
+
+function ensurePaintConfig() {
+  if (!localPricing.adders.paint) {
+    localPricing.adders.paint = structuredClone(DEFAULT_PAINT_PRICING);
+  }
+}
+
+function setPaintMode(mode: 'percentage' | 'per-gallon') {
+  if (mode === 'per-gallon') {
+    ensurePaintConfig();
+    localPricing.adders.paint_pct = undefined;
+  } else {
+    localPricing.adders.paint = null;
+    localPricing.adders.paint_pct =
+      typeof localPricing.adders.paint_pct === 'number' ? localPricing.adders.paint_pct : 0.05;
+  }
+  localPricing = { ...localPricing };
+}
+
+function renameMaterialKey(oldKey: string, rawValue: string) {
+  const nextKey = rawValue.trim();
+  if (!nextKey) {
+    localPricing = { ...localPricing };
+    return;
+  }
+
+  if (nextKey === oldKey) {
+    return;
+  }
+
+  if (localPricing.materials[nextKey]) {
+    alert('A material with that key already exists. Please choose another name.');
+    localPricing = { ...localPricing };
+    return;
+  }
+
+  const entries = Object.entries(localPricing.materials).map(([key, value]) =>
+    key === oldKey ? [nextKey, value] : [key, value]
+  );
+
+  localPricing.materials = Object.fromEntries(entries);
+
+  if (localPricing.defaults.material_key === oldKey) {
+    localPricing.defaults.material_key = nextKey;
+  }
+
+  localPricing = { ...localPricing };
+}
 </script>
 
 <div class="space-y-8">
@@ -34,8 +102,11 @@
   <section class="card">
     <div class="mb-6 pb-6 border-b border-black/10">
       <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-2xl font-semibold text-black mb-1">Materials</h2>
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <h2 class="text-2xl font-semibold text-black">Materials</h2>
+            <Tooltip text="Each material entry defines density and $/lb for quoting and tank mass calculations. Rename keys to something meaningful (e.g., steel_A36)." />
+          </div>
           <p class="text-sm text-zinc-600">Configure material densities and prices</p>
         </div>
         <button class="btn btn-outline" on:click={addMaterial}>
@@ -47,8 +118,17 @@
     <div class="space-y-6">
       {#each Object.entries(localPricing.materials || {}) as [key, material]}
         <div class="p-4 border border-black/10 rounded-lg">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-black">{key}</h3>
+          <div class="flex items-center justify-between gap-4 mb-4">
+            <label class="flex flex-col gap-1 flex-1">
+              <span class="text-sm font-medium text-black">Material key</span>
+              <input
+                class="input"
+                type="text"
+                value={key}
+                on:change={(event) => renameMaterialKey(key, (event.target as HTMLInputElement).value)}
+                placeholder="e.g. steel_A36"
+              />
+            </label>
             <button 
               class="text-sm text-red-600 hover:text-red-700 underline"
               on:click={() => removeMaterial(key)}
@@ -88,8 +168,13 @@
   <!-- Labor Section -->
   <section class="card">
     <div class="mb-6 pb-6 border-b border-black/10">
-      <h2 class="text-2xl font-semibold text-black mb-1">Labor</h2>
-      <p class="text-sm text-zinc-600">Configure welding and assembly labor rates</p>
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <h2 class="text-2xl font-semibold text-black">Labor</h2>
+          <Tooltip text="Set shop labor assumptions for welding inches, number of passes, assembly hours, and hourly rate. Quotes scale these rates based on tank geometry." />
+        </div>
+        <p class="text-sm text-zinc-600">Configure welding and assembly labor rates</p>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -143,8 +228,13 @@
   <!-- Adders Section -->
   <section class="card">
     <div class="mb-6 pb-6 border-b border-black/10">
-      <h2 class="text-2xl font-semibold text-black mb-1">Adders</h2>
-      <p class="text-sm text-zinc-600">Configure overhead, profit, and paint percentages</p>
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <h2 class="text-2xl font-semibold text-black">Adders</h2>
+          <Tooltip text="Overhead and profit are applied as percentages of the subtotal. Choose whether paint is estimated per gallon or as a legacy percentage of the subtotal." />
+        </div>
+        <p class="text-sm text-zinc-600">Configure overhead, profit, and paint percentages</p>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -172,26 +262,88 @@
           placeholder="0.12"
         />
       </label>
-      <label class="grid gap-2">
-        <span class="text-sm font-medium text-black">Paint (%)</span>
-        <input 
-          class="input" 
-          type="number" 
-          bind:value={localPricing.adders.paint_pct}
-          step="any" 
-          min="0" 
-          max="1"
-          placeholder="0.00"
-        />
-      </label>
+    </div>
+
+    <div class="mt-8 space-y-4">
+      <div class="flex items-center flex-wrap gap-4 text-sm font-medium text-black">
+        <span class="uppercase tracking-wide text-xs text-zinc-500">Paint Pricing Mode</span>
+        <label class="inline-flex items-center gap-2 text-zinc-700">
+          <input
+            type="radio"
+            name="paint-mode"
+            value="percentage"
+            checked={paintMode === 'percentage'}
+            on:change={() => setPaintMode('percentage')}
+          />
+          Percentage of subtotal
+        </label>
+        <label class="inline-flex items-center gap-2 text-zinc-700">
+          <input
+            type="radio"
+            name="paint-mode"
+            value="per-gallon"
+            checked={paintMode === 'per-gallon'}
+            on:change={() => setPaintMode('per-gallon')}
+          />
+          Price per gallon (recommended)
+        </label>
+      </div>
+
+      {#if paintMode === 'per-gallon'}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <label class="grid gap-2">
+            <span class="text-sm font-medium text-black">Price per gallon ($)</span>
+            <input
+              class="input"
+              type="number"
+              min="0"
+              step="any"
+              bind:value={localPricing.adders.paint!.price_per_gallon}
+            />
+          </label>
+          <label class="grid gap-2">
+            <span class="text-sm font-medium text-black">Coverage (sq ft per gallon)</span>
+            <input
+              class="input"
+              type="number"
+              min="1"
+              step="any"
+              bind:value={localPricing.adders.paint!.coverage_sqft_per_gallon}
+            />
+          </label>
+        </div>
+        <p class="text-xs text-zinc-500">
+          Gallons needed are calculated from the tank surface area using the coverage value above
+          (350&nbsp;sq&nbsp;ft/gal is a common single-coat default—adjust for your coating spec).
+        </p>
+      {:else}
+        <div class="grid gap-2 max-w-md">
+          <span class="text-sm font-medium text-black">Paint percentage (%)</span>
+          <input
+            class="input"
+            type="number"
+            min="0"
+            step="any"
+            bind:value={localPricing.adders.paint_pct}
+          />
+          <p class="text-xs text-zinc-500">
+            Portion of the subtotal to allocate for paint (legacy calculation).
+          </p>
+        </div>
+      {/if}
     </div>
   </section>
 
   <!-- Defaults Section -->
   <section class="card">
     <div class="mb-6 pb-6 border-b border-black/10">
-      <h2 class="text-2xl font-semibold text-black mb-1">Defaults</h2>
-      <p class="text-sm text-zinc-600">Set default material selection</p>
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <h2 class="text-2xl font-semibold text-black">Defaults</h2>
+          <Tooltip text="Choose which material key the tank form selects by default so users start with the most common spec." />
+        </div>
+        <p class="text-sm text-zinc-600">Set default material selection</p>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

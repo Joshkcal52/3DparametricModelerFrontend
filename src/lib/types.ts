@@ -71,7 +71,13 @@ export interface LaborPricing {
 export interface PricingAdders {
   overhead_pct: number;
   profit_pct: number;
-  paint_pct: number;
+  paint_pct?: number;
+  paint?: PaintPricing | null;
+}
+
+export interface PaintPricing {
+  price_per_gallon: number;
+  coverage_sqft_per_gallon: number;
 }
 
 export interface PricingDefaults {
