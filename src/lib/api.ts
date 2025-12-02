@@ -5,7 +5,9 @@ import type {
   QuoteResult,
   MaterialsResponse,
   PricingConfig,
-  MaterialPricing
+  MaterialPricing,
+  Preset,
+  PresetListResponse
 } from './types';
 
 // Proxied endpoints (avoid CORS) under /api/*
@@ -46,6 +48,21 @@ const toNumber = (value: unknown, fallback = 0): number => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   const coerced = Number(value);
   return Number.isFinite(coerced) ? coerced : fallback;
+};
+
+const safeJsonParse = <T>(raw: string): T | null => {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+};
+
+const extractErrorMessage = (raw: string, fallback: string): string => {
+  if (!raw) return fallback;
+  const parsed = safeJsonParse<{ error?: string; message?: string }>(raw);
+  return parsed?.error || parsed?.message || raw || fallback;
 };
 
 const normalizeMaterialPricing = (entries: Record<string, unknown>): Record<string, MaterialPricing> => {
@@ -103,16 +120,13 @@ export async function requestQuote(body: TankParams): Promise<QuoteResult> {
   });
   const raw = await r.text();
   if (!r.ok) {
-    let message = 'Quote failed';
-    try {
-      const errorData = JSON.parse(raw);
-      message = errorData.error || message;
-    } catch {
-      message = raw || message;
-    }
+    const message = extractErrorMessage(raw, 'Quote failed');
     throw new Error(message);
   }
-  const data = JSON.parse(raw);
+  const data = safeJsonParse<Record<string, unknown>>(raw);
+  if (!data) {
+    throw new Error('Invalid quote response from server');
+  }
   
   // Map backend line_items format to frontend format
   if (data.line_items && Array.isArray(data.line_items)) {
@@ -192,10 +206,13 @@ export async function generateStep(body: TankParams): Promise<StepPayload> {
   }
 
   if (ct.includes('application/json')) {
-    const data = JSON.parse(new TextDecoder().decode(buffer));
-    const href: string = data.download_url || data.url || data.href || '';
-    const viewUrl: string = data.view_url || href; // Use view_url for viewer, fallback to download_url
-    const filename: string | undefined = data.filename || undefined;
+    const parsed = safeJsonParse<Record<string, unknown>>(new TextDecoder().decode(buffer));
+    if (!parsed) {
+      throw new Error('Invalid STEP generation response');
+    }
+    const href: string = (parsed.download_url as string) || (parsed.url as string) || (parsed.href as string) || '';
+    const viewUrl: string = (parsed.view_url as string) || href; // Use view_url for viewer, fallback to download_url
+    const filename: string | undefined = (parsed.filename as string) || undefined;
     
     if (!href) {
       throw new Error('Backend did not provide a download URL');
@@ -214,6 +231,69 @@ export async function generateStep(body: TankParams): Promise<StepPayload> {
   const url = URL.createObjectURL(blob);
   return { href: url, viewUrl: url, filename };
 }
+
+const toPresetArray = (data: unknown): Preset[] => {
+  if (!data || typeof data !== 'object') return [];
+  const map =
+    (data as PresetListResponse).presets && typeof (data as PresetListResponse).presets === 'object'
+      ? ((data as PresetListResponse).presets as Record<string, unknown>)
+      : (data as Record<string, unknown>);
+
+  const presetsList: Preset[] = [];
+
+  for (const [name, params] of Object.entries(map)) {
+    if (!params || typeof params !== 'object') {
+      continue;
+    }
+    presetsList.push({
+      name,
+      params: structuredClone(params as TankParams)
+    });
+  }
+
+  return presetsList;
+};
+
+const encodePresetName = (name: string): string => {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error('Preset name is required');
+  return encodeURIComponent(trimmed);
+};
+
+export async function listPresets(): Promise<Preset[]> {
+  const r = await fetch(`${BASE}/presets`);
+  const raw = await r.text();
+  if (!r.ok) {
+    throw new Error(extractErrorMessage(raw, 'Failed to load presets'));
+  }
+
+  const parsed = safeJsonParse<PresetListResponse>(raw) ?? { presets: {} };
+  return toPresetArray(parsed);
+}
+
+export async function savePreset(name: string, params: TankParams): Promise<void> {
+  const r = await fetch(`${BASE}/presets/${encodePresetName(name)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params)
+  });
+  if (!r.ok) {
+    const raw = await r.text();
+    throw new Error(extractErrorMessage(raw, 'Failed to save preset'));
+  }
+}
+
+export async function deletePreset(name: string): Promise<void> {
+  const r = await fetch(`${BASE}/presets/${encodePresetName(name)}`, {
+    method: 'DELETE'
+  });
+  if (!r.ok) {
+    const raw = await r.text();
+    throw new Error(extractErrorMessage(raw, 'Failed to delete preset'));
+  }
+}
+
+
 
 
 

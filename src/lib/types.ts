@@ -85,5 +85,22 @@ export interface PricingConfig {
   defaults: PricingDefaults;
 }
 
+export interface Preset {
+  name: string;
+  params: TankParams;
+}
+
+export type PresetMap = Record<string, TankParams>;
+
+export interface PresetListResponse {
+  presets: PresetMap;
+}
+
+export interface PresetResponse {
+  name: string;
+  params: TankParams;
+}
+
+
 
 

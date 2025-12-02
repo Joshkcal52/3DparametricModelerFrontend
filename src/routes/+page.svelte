@@ -4,8 +4,8 @@
   import StepDownload from '$lib/components/StepDownload.svelte';
   import StepViewer from '$lib/components/StepViewer.svelte';
   import { fetchMaterials, requestQuote, generateStep } from '$lib/api';
-  import type { QuoteResult, TankParams, MaterialMap } from '$lib/types';
-  import { initPresets, presets, addPreset, removePreset } from '$lib/stores/presets';
+  import type { QuoteResult, TankParams, MaterialMap, Preset } from '$lib/types';
+  import { presets, loadPresets, savePreset, deletePreset } from '$lib/stores/presets';
   import { onMount, onDestroy } from 'svelte';
 
   let materials: MaterialMap = {};
@@ -22,15 +22,15 @@
   let stepObjectUrl: string | null = null;
   let stepRequestToken = 0;
   let activeStepRequests = 0;
+  let tankFormRef: InstanceType<typeof TankForm> | null = null;
+  let presetsLoading = true;
+  let presetsError: string | null = null;
+  let presetActionError: string | null = null;
+  let savingPreset = false;
+  let deletingPresetName: string | null = null;
 
   onMount(async () => {
-    initPresets();
-    try {
-      const res = await fetchMaterials();
-      materials = res.materials;
-    } catch (e) {
-      console.error('Materials load failed', e);
-    }
+    await Promise.allSettled([loadMaterialList(), refreshPresets()]);
   });
 
   onDestroy(() => {
@@ -38,6 +38,28 @@
   });
 
   const isBrowser = typeof window !== 'undefined';
+
+  async function loadMaterialList() {
+    try {
+      const res = await fetchMaterials();
+      materials = res.materials;
+    } catch (e) {
+      console.error('Materials load failed', e);
+    }
+  }
+
+  async function refreshPresets() {
+    presetsLoading = true;
+    presetsError = null;
+    try {
+      await loadPresets();
+    } catch (e) {
+      console.error('Presets load failed', e);
+      presetsError = e instanceof Error ? e.message : 'Failed to load presets';
+    } finally {
+      presetsLoading = false;
+    }
+  }
 
   function revokeBlobUrl(url: string | null) {
     if (url && isBrowser) {
@@ -112,11 +134,40 @@
 
   // Presets helpers
   let newPresetName = '';
-  function savePresetFromQuote() {
-    if (!lastQuoteParams) return;
+
+  async function savePresetFromQuote() {
+    if (!lastQuoteParams || savingPreset) return;
     const name = newPresetName.trim() || 'Preset';
-    addPreset({ name, params: structuredClone(lastQuoteParams) });
-    newPresetName = '';
+    savingPreset = true;
+    presetActionError = null;
+    try {
+      await savePreset(name, structuredClone(lastQuoteParams));
+      newPresetName = '';
+    } catch (e) {
+      console.error('Preset save failed:', e);
+      presetActionError = e instanceof Error ? e.message : 'Failed to save preset';
+    } finally {
+      savingPreset = false;
+    }
+  }
+
+  async function handleDeletePreset(name: string) {
+    if (deletingPresetName) return;
+    presetActionError = null;
+    deletingPresetName = name;
+    try {
+      await deletePreset(name);
+    } catch (e) {
+      console.error('Preset delete failed:', e);
+      presetActionError = e instanceof Error ? e.message : 'Failed to delete preset';
+    } finally {
+      deletingPresetName = null;
+    }
+  }
+
+  function applyPresetToForm(preset: Preset) {
+    presetActionError = null;
+    tankFormRef?.applyPreset?.(preset.params);
   }
 </script>
 
@@ -124,33 +175,80 @@
   <!-- Left Column: Presets and Notes (stacked) -->
   <div class="lg:col-span-2 space-y-6">
     <section class="card">
-      <h3 class="text-lg font-semibold text-black mb-4">Presets</h3>
-      <div class="flex gap-2 mb-4">
+      <div class="flex items-center justify-between gap-4 mb-4">
+        <h3 class="text-lg font-semibold text-black">Presets</h3>
+        <button
+          type="button"
+          class="text-xs text-zinc-500 hover:text-black underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+          on:click={refreshPresets}
+          disabled={presetsLoading}
+        >
+          {#if presetsLoading}
+            <svg class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
+            </svg>
+          {/if}
+          Refresh
+        </button>
+      </div>
+
+      <div class="flex gap-2 mb-3">
         <input 
           class="input flex-1" 
           placeholder="Preset name…" 
           bind:value={newPresetName} 
         />
         <button 
-          class="btn btn-primary" 
+          type="button"
+          class="btn btn-primary flex items-center justify-center gap-2" 
           on:click={savePresetFromQuote} 
-          disabled={!newPresetName.trim() || !lastQuoteParams}
+          disabled={!newPresetName.trim() || !lastQuoteParams || savingPreset}
         >
-          Save
+          {#if savingPreset}
+            <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
+            </svg>
+            Saving…
+          {:else}
+            Save
+          {/if}
         </button>
       </div>
 
-      {#if $presets.length > 0}
+      <p class="text-xs text-zinc-500 mb-4">Save uses the most recent "Get Quote" inputs.</p>
+
+      {#if presetActionError}
+        <p class="text-xs text-red-600 mb-4">{presetActionError}</p>
+      {/if}
+
+      {#if presetsLoading}
+        <p class="text-sm text-zinc-500 italic">Loading presets…</p>
+      {:else if presetsError}
+        <p class="text-sm text-red-600">{presetsError}</p>
+      {:else if $presets.length > 0}
         <ul class="divide-y divide-black/10">
           {#each $presets as p}
-            <li class="py-3 flex items-center justify-between group">
+            <li class="py-3 flex items-center justify-between gap-3 flex-wrap">
               <span class="font-medium text-sm text-black">{p.name}</span>
-              <button 
-                class="text-xs text-zinc-500 hover:text-black underline opacity-0 group-hover:opacity-100 transition-opacity" 
-                on:click={() => removePreset(p.name)}
-              >
-                Delete
-              </button>
+              <div class="flex items-center gap-3 text-xs">
+                <button 
+                  type="button"
+                  class="text-black underline hover:text-zinc-700"
+                  on:click={() => applyPresetToForm(p)}
+                >
+                  Load
+                </button>
+                <button 
+                  type="button"
+                  class="text-zinc-500 hover:text-red-600 underline disabled:opacity-50 disabled:cursor-not-allowed"
+                  on:click={() => handleDeletePreset(p.name)}
+                  disabled={deletingPresetName === p.name}
+                >
+                  {deletingPresetName === p.name ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
             </li>
           {/each}
         </ul>
@@ -159,7 +257,7 @@
       {/if}
 
       <p class="mt-4 text-xs text-zinc-500 pt-4 border-t border-black/10">
-        Presets are stored locally in your browser.
+        Presets are stored on the backend and are available across browsers.
       </p>
     </section>
 
@@ -168,7 +266,7 @@
       <ul class="space-y-2 text-sm text-zinc-600">
         <li class="flex items-start gap-2">
           <span class="text-black mt-1">•</span>
-          <span>Materials list is fetched from the backend <code class="px-1.5 py-0.5 bg-zinc-100 rounded text-xs font-mono">/pricing</code> or the JSON file fallback.</span>
+          <span>Materials list is fetched from the backend <code class="px-1.5 py-0.5 bg-zinc-100 rounded text-xs font-mono">/materials</code> endpoint (with a JSON fallback if needed).</span>
         </li>
         <li class="flex items-start gap-2">
           <span class="text-black mt-1">•</span>
@@ -184,7 +282,14 @@
 
   <!-- Middle Column: Tank Form -->
   <div class="lg:col-span-4 space-y-8">
-    <TankForm {materials} onQuote={handleQuote} onStep={handleStep} {quoteLoading} {stepLoading} />
+    <TankForm
+      bind:this={tankFormRef}
+      {materials}
+      onQuote={handleQuote}
+      onStep={handleStep}
+      {quoteLoading}
+      {stepLoading}
+    />
   </div>
 
   <!-- Right Column: Toggleable Quote/Viewer -->

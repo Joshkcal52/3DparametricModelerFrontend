@@ -1,46 +1,25 @@
 import { writable } from 'svelte/store';
-import type { TankParams } from '$lib/types';
-
-export interface Preset { name: string; params: TankParams }
-
-const LS_KEY = 'coyotecad.presets.v1';
-
-function load(): Preset[] {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
-}
-
-function save(list: Preset[]) {
-  localStorage.setItem(LS_KEY, JSON.stringify(list));
-}
+import type { Preset, TankParams } from '$lib/types';
+import { listPresets, savePreset as savePresetApi, deletePreset as deletePresetApi } from '$lib/api';
 
 export const presets = writable<Preset[]>([]);
 
-export function initPresets() {
-  if (typeof window === 'undefined') return;
-  presets.set(load());
+const sortByName = (list: Preset[]): Preset[] => [...list].sort((a, b) => a.name.localeCompare(b.name));
+
+export async function loadPresets(): Promise<Preset[]> {
+  const data = await listPresets();
+  const sorted = sortByName(data);
+  presets.set(sorted);
+  return sorted;
 }
 
-export function addPreset(p: Preset) {
-  presets.update((list) => {
-    const next = [...list.filter((x) => x.name !== p.name), p];
-    save(next);
-    return next;
-  });
+export async function savePreset(name: string, params: TankParams): Promise<void> {
+  await savePresetApi(name, params);
+  presets.update((list) => sortByName([...list.filter((x) => x.name !== name), { name, params }]));
 }
 
-export function removePreset(name: string) {
-  presets.update((list) => {
-    const next = list.filter((x) => x.name !== name);
-    save(next);
-    return next;
-  });
+export async function deletePreset(name: string): Promise<void> {
+  await deletePresetApi(name);
+  presets.update((list) => list.filter((x) => x.name !== name));
 }
-
-
 

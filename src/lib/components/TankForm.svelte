@@ -24,6 +24,26 @@
   let includeManway = false;
   let formError: string | null = null;
 
+  function setFormValue(next: TankParams) {
+    const clone = structuredClone(next);
+    form = clone;
+    includeManway = Boolean(clone.manway);
+  }
+
+  const mergeWithDefaults = (params: TankParams): TankParams => {
+    const base = structuredClone(defaults);
+    const incoming = structuredClone(params);
+    return {
+      ...base,
+      ...incoming,
+      manway: incoming.manway ?? null
+    };
+  };
+
+  export function applyPreset(params: TankParams) {
+    setFormValue(mergeWithDefaults(params));
+  }
+
   function toggleManway() {
     if (includeManway) {
       form.manway = { width: 24, height: 24, offset_up: 18, corner_radius: 2 };
@@ -88,7 +108,7 @@
         <p class="text-sm text-zinc-600">Configure your tank specifications</p>
       </div>
       <div class="flex gap-3 flex-wrap">
-        <button class="btn btn-outline" on:click={() => (form = structuredClone(defaults))}>
+        <button class="btn btn-outline" on:click={() => setFormValue(defaults)}>
           Reset
         </button>
         <button
