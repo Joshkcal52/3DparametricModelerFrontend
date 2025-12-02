@@ -10,6 +10,7 @@
 
   let materials: MaterialMap = {};
   let quote: QuoteResult | null = null;
+  let lastQuoteParams: TankParams | null = null;
   let stepHref = '';
   let stepViewUrl = '';
   let stepFilename: string | undefined;
@@ -31,6 +32,7 @@
 
   async function handleQuote(p: TankParams) {
     quote = null; // clear
+    lastQuoteParams = structuredClone(p);
     quoteError = null;
     quoteLoading = true;
     showViewer = false; // Show quote when it loads
@@ -70,8 +72,9 @@
   // Presets helpers
   let newPresetName = '';
   function savePresetFromQuote() {
-    if (!quote) return;
-    addPreset({ name: newPresetName || 'Preset', params: (quote as any).input ?? {} });
+    if (!lastQuoteParams) return;
+    const name = newPresetName.trim() || 'Preset';
+    addPreset({ name, params: structuredClone(lastQuoteParams) });
     newPresetName = '';
   }
 </script>
@@ -90,7 +93,7 @@
         <button 
           class="btn btn-primary" 
           on:click={savePresetFromQuote} 
-          disabled={!newPresetName}
+          disabled={!newPresetName.trim() || !lastQuoteParams}
         >
           Save
         </button>
