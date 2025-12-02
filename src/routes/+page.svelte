@@ -6,7 +6,7 @@
   import { fetchMaterials, requestQuote, generateStep } from '$lib/api';
   import type { QuoteResult, TankParams, MaterialMap } from '$lib/types';
   import { initPresets, presets, addPreset, removePreset } from '$lib/stores/presets';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
 
   let materials: MaterialMap = {};
   let quote: QuoteResult | null = null;
@@ -19,6 +19,9 @@
   let stepLoading = false;
   let stepError: string | null = null;
   let showViewer = false; // Toggle between quote and viewer
+  let stepObjectUrl: string | null = null;
+  let stepRequestToken = 0;
+  let activeStepRequests = 0;
 
   onMount(async () => {
     initPresets();
@@ -29,6 +32,23 @@
       console.error('Materials load failed', e);
     }
   });
+
+  onDestroy(() => {
+    revokeStepObjectUrl();
+  });
+
+  const isBrowser = typeof window !== 'undefined';
+
+  function revokeBlobUrl(url: string | null) {
+    if (url && isBrowser) {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function revokeStepObjectUrl() {
+    revokeBlobUrl(stepObjectUrl);
+    stepObjectUrl = null;
+  }
 
   async function handleQuote(p: TankParams) {
     quote = null; // clear
@@ -49,6 +69,9 @@
   }
 
   async function handleStep(p: TankParams) {
+    const requestToken = ++stepRequestToken;
+    activeStepRequests += 1;
+    revokeStepObjectUrl();
     stepHref = '';
     stepViewUrl = '';
     stepFilename = undefined;
@@ -56,16 +79,34 @@
     stepLoading = true;
     try {
       const res = await generateStep(p);
-      stepHref = res.href;
-      stepViewUrl = res.viewUrl || res.href;
+      const href = res.href ?? '';
+      const isLatest = requestToken === stepRequestToken;
+
+      if (!isLatest) {
+        if (href.startsWith('blob:')) {
+          revokeBlobUrl(href);
+        }
+        return;
+      }
+
+      stepHref = href;
+      stepViewUrl = res.viewUrl || href;
       stepFilename = res.filename;
+      if (href.startsWith('blob:')) {
+        stepObjectUrl = href;
+      } else {
+        stepObjectUrl = null;
+      }
       showViewer = true; // Show viewer when STEP is generated
       console.log('STEP generated:', res);
     } catch (e) {
-      console.error('STEP generation failed:', e);
-      stepError = e instanceof Error ? e.message : 'Failed to generate STEP file. Please try again.';
+      if (requestToken === stepRequestToken) {
+        console.error('STEP generation failed:', e);
+        stepError = e instanceof Error ? e.message : 'Failed to generate STEP file. Please try again.';
+      }
     } finally {
-      stepLoading = false;
+      activeStepRequests = Math.max(0, activeStepRequests - 1);
+      stepLoading = activeStepRequests > 0;
     }
   }
 

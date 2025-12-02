@@ -55,4 +55,3 @@ export const GET: RequestHandler = async ({ params, url }) => {
     return new Response('Error serving file', { status: 500, headers });
   }
 };
-
