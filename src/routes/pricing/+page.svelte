@@ -2,8 +2,9 @@
   import PricingForm from '$lib/components/PricingForm.svelte';
   import { fetchPricing, updatePricing } from '$lib/api';
   import { onMount } from 'svelte';
+  import type { PricingConfig } from '$lib/types';
 
-  let pricing: any = null;
+  let pricing: PricingConfig | null = null;
   let loading = false;
   let saving = false;
   let error: string | null = null;
@@ -27,7 +28,7 @@
     }
   }
 
-  async function handleSave(updatedPricing: any) {
+  async function handleSave(updatedPricing: PricingConfig) {
     saving = true;
     error = null;
     success = false;

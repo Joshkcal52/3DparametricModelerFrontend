@@ -4,11 +4,11 @@
   import StepDownload from '$lib/components/StepDownload.svelte';
   import StepViewer from '$lib/components/StepViewer.svelte';
   import { fetchMaterials, requestQuote, generateStep } from '$lib/api';
-  import type { QuoteResult, TankParams } from '$lib/types';
+  import type { QuoteResult, TankParams, MaterialMap } from '$lib/types';
   import { initPresets, presets, addPreset, removePreset } from '$lib/stores/presets';
   import { onMount } from 'svelte';
 
-  let materials: Record<string, { name: string }> = {};
+  let materials: MaterialMap = {};
   let quote: QuoteResult | null = null;
   let stepHref = '';
   let stepViewUrl = '';
@@ -23,7 +23,7 @@
     initPresets();
     try {
       const res = await fetchMaterials();
-      materials = res.materials as any;
+      materials = res.materials;
     } catch (e) {
       console.error('Materials load failed', e);
     }

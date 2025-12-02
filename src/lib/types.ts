@@ -42,8 +42,47 @@ export interface QuoteResult {
   line_items: LineItem[];
 }
 
+export interface MaterialDefinition {
+  name: string;
+  density_lb_ft3?: number;
+  density_lb_per_in3?: number;
+  [k: string]: string | number | boolean | null | undefined;
+}
+
+export type MaterialMap = Record<string, MaterialDefinition>;
+
 export interface MaterialsResponse {
-  materials: Record<string, { name: string; density_lb_ft3?: number; [k: string]: any }>;
+  materials: MaterialMap;
+}
+
+export interface MaterialPricing {
+  density_lb_per_in3: number;
+  price_per_lb: number;
+  [k: string]: string | number | boolean | null | undefined;
+}
+
+export interface LaborPricing {
+  weld_dollars_per_inch: number;
+  weld_passes_per_joint: number;
+  assembly_hours: number;
+  shop_rate_per_hour: number;
+}
+
+export interface PricingAdders {
+  overhead_pct: number;
+  profit_pct: number;
+  paint_pct: number;
+}
+
+export interface PricingDefaults {
+  material_key: string;
+}
+
+export interface PricingConfig {
+  materials: Record<string, MaterialPricing>;
+  labor: LaborPricing;
+  adders: PricingAdders;
+  defaults: PricingDefaults;
 }
 
 

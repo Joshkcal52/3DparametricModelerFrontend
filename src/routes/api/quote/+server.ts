@@ -10,6 +10,15 @@ export const POST: RequestHandler = async ({ request }) => {
       body
     });
 
+    if (!r.ok) {
+      const errorText = await r.text();
+      console.error('Backend quote error:', r.status, errorText);
+      return new Response(JSON.stringify({ error: errorText || 'Failed to fetch quote' }), {
+        status: r.status,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+
     const data = await r.json();
     
     return new Response(JSON.stringify(data), {

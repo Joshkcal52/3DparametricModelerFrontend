@@ -1,8 +1,8 @@
 <script lang="ts">
   import { z } from 'zod';
-  import type { TankParams, RoofType } from '$lib/types';
+  import type { TankParams, RoofType, MaterialMap } from '$lib/types';
 
-  export let materials: Record<string, { name: string }>; // key → { name }
+  export let materials: MaterialMap; // key → { name }
   export let onQuote: (p: TankParams) => Promise<void>;
   export let onStep: (p: TankParams) => Promise<void>;
   export let quoteLoading = false;

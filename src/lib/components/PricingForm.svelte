@@ -1,34 +1,31 @@
 <script lang="ts">
-  export let pricing: any;
-  export let onSave: (p: any) => Promise<void>;
+  import type { PricingConfig } from '$lib/types';
+
+  export let pricing: PricingConfig;
+  export let onSave: (p: PricingConfig) => Promise<void>;
   export let saving = false;
 
-  let localPricing = structuredClone(pricing);
+  let localPricing: PricingConfig = structuredClone(pricing);
 
   // Watch for pricing changes from parent
-  $: if (pricing) {
-    localPricing = structuredClone(pricing);
-  }
+  $: localPricing = structuredClone(pricing);
 
   function handleSave() {
     onSave(localPricing);
   }
 
   function addMaterial() {
-    if (!localPricing.materials) localPricing.materials = {};
     const newKey = `material_${Object.keys(localPricing.materials).length + 1}`;
     localPricing.materials[newKey] = {
       density_lb_per_in3: 0.283,
-      price_per_lb: 1.10
+      price_per_lb: 1.1
     };
     localPricing = { ...localPricing }; // Trigger reactivity
   }
 
   function removeMaterial(key: string) {
-    if (localPricing.materials) {
-      delete localPricing.materials[key];
-      localPricing = { ...localPricing }; // Trigger reactivity
-    }
+    delete localPricing.materials[key];
+    localPricing = { ...localPricing }; // Trigger reactivity
   }
 </script>
 
