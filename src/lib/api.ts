@@ -101,11 +101,18 @@ export async function requestQuote(body: TankParams): Promise<QuoteResult> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
+  const raw = await r.text();
   if (!r.ok) {
-    const errorData = await r.json().catch(() => ({ error: 'Quote failed' }));
-    throw new Error(errorData.error || 'Quote failed');
+    let message = 'Quote failed';
+    try {
+      const errorData = JSON.parse(raw);
+      message = errorData.error || message;
+    } catch {
+      message = raw || message;
+    }
+    throw new Error(message);
   }
-  const data = await r.json();
+  const data = JSON.parse(raw);
   
   // Map backend line_items format to frontend format
   if (data.line_items && Array.isArray(data.line_items)) {
@@ -158,20 +165,34 @@ export async function updatePricing(pricing: PricingConfig): Promise<void> {
   if (!r.ok) throw new Error('Failed to update pricing');
 }
 
-export async function generateStep(body: TankParams): Promise<{ href: string; viewUrl?: string; filename?: string }> {
+type StepPayload = { href: string; viewUrl?: string; filename?: string };
+
+export async function generateStep(body: TankParams): Promise<StepPayload> {
   const r = await fetch(`${BASE}/generate-step`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
 
+  const buffer = await r.arrayBuffer();
+  const ct = r.headers.get('content-type') || '';
+
   if (!r.ok) {
-    throw new Error('Failed to generate STEP file');
+    const message = ct.includes('application/json')
+      ? (() => {
+          try {
+            const parsed = JSON.parse(new TextDecoder().decode(buffer)) as { error?: string };
+            return parsed.error || 'Failed to generate STEP file';
+          } catch {
+            return 'Failed to generate STEP file';
+          }
+        })()
+      : new TextDecoder().decode(buffer) || 'Failed to generate STEP file';
+    throw new Error(message);
   }
 
-  const ct = r.headers.get('content-type') || '';
   if (ct.includes('application/json')) {
-    const data = await r.json();
+    const data = JSON.parse(new TextDecoder().decode(buffer));
     const href: string = data.download_url || data.url || data.href || '';
     const viewUrl: string = data.view_url || href; // Use view_url for viewer, fallback to download_url
     const filename: string | undefined = data.filename || undefined;
@@ -185,9 +206,12 @@ export async function generateStep(body: TankParams): Promise<{ href: string; vi
   }
 
   // Fallback: treat as file stream and build a blob URL
-  const blob = await r.blob();
+  const blob = new Blob([buffer], { type: ct || 'application/octet-stream' });
   const filename = (r.headers.get('content-disposition') || '').match(/filename="?([^";]+)"?/i)?.[1];
-  const url = browser ? URL.createObjectURL(blob) : '';
+  if (!browser) {
+    throw new Error('STEP download is only available in the browser');
+  }
+  const url = URL.createObjectURL(blob);
   return { href: url, viewUrl: url, filename };
 }
 

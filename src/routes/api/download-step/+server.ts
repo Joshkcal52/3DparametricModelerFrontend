@@ -1,4 +1,4 @@
-import type { RequestHandler } from './$types';
+import type { RequestHandler, RequestEvent } from '@sveltejs/kit';
 import { PUBLIC_API_BASE } from '$env/static/public';
 
 const HTTP_PATTERN = /^https?:\/\//i;
@@ -17,6 +17,11 @@ const resolveBackendBase = (origin: string): string => {
 
   const basePath = PUBLIC_API_BASE.startsWith('/') ? PUBLIC_API_BASE : `/${PUBLIC_API_BASE}`;
   return `${origin}${basePath}`;
+};
+
+const joinBackendPath = (base: string, path: string): string => {
+  const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  return `${normalizedBase}${path}`;
 };
 
 const sanitizeRelativePath = (raw: string): string => {
@@ -39,11 +44,13 @@ const isAllowedAbsoluteUrl = (url: string, origin: string): boolean => {
   }
 };
 
-export const OPTIONS: RequestHandler = async ({ url }) => {
+export const OPTIONS: RequestHandler = async (event: RequestEvent) => {
+  const { url } = event;
   return new Response(null, { headers: corsHeaders(url.origin) });
 };
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async (event: RequestEvent) => {
+  const { url } = event;
   const filePath = url.searchParams.get('path');
 
   if (!filePath) {
@@ -65,7 +72,7 @@ export const GET: RequestHandler = async ({ url }) => {
       targetUrl = filePath;
     } else {
       const sanitizedPath = sanitizeRelativePath(filePath);
-      targetUrl = new URL(sanitizedPath, resolveBackendBase(url.origin)).href;
+      targetUrl = joinBackendPath(resolveBackendBase(url.origin), sanitizedPath);
     }
 
     const r = await fetch(targetUrl);
@@ -89,4 +96,3 @@ export const GET: RequestHandler = async ({ url }) => {
     return new Response('Error downloading file', { status: 500, headers });
   }
 };
-

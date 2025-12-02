@@ -22,6 +22,7 @@
 
   let form: TankParams = structuredClone(defaults);
   let includeManway = false;
+  let formError: string | null = null;
 
   function toggleManway() {
     if (includeManway) {
@@ -61,18 +62,20 @@
     // validate & emit
     try {
       const clean = schema.parse(form);
+      formError = null;
       onQuote(clean);
     } catch (e) {
-      alert('Please check your inputs.');
+      formError = 'Please check your inputs.';
     }
   }
 
   function submitStep() {
     try {
       const clean = schema.parse(form);
+      formError = null;
       onStep(clean);
     } catch (e) {
-      alert('Please check your inputs.');
+      formError = 'Please check your inputs.';
     }
   }
 </script>
@@ -157,6 +160,9 @@
           </svg>
         </button>
       </div>
+      {#if formError}
+        <p class="text-sm text-red-600 mt-2" role="alert">{formError}</p>
+      {/if}
     </div>
   </div>
 
