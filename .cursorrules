@@ -1,0 +1,79 @@
+version: 1
+rules:
+  - description: Never modify build artifacts or generated output
+    pattern: >
+      /node_modules/** |
+      /.svelte-kit/** |
+      /static/viewer/assets/** |
+      /static/viewer/envmaps/** |
+      /static/viewer/models/** |
+      /src/routes/generated/** |
+      /src/routes/cadmodels/output/**
+    effect: no-edit
+
+  - description: Do not modify API proxies or server endpoints unless user explicitly asks
+    pattern: /src/routes/api/**
+    effect: no-edit-unless-requested
+
+  - description: Treat this as a SvelteKit project with explicit frontend/backend separation
+    effect: msg
+    message: |
+      BACKEND LIVES IN A SEPARATE REPO. Do NOT create backend code here.
+      All backend requests go through fetch('/api/...') and return JSON.
+
+  - description: Ensure geometry metrics come from backend only, never recompute locally
+    pattern: /src/**
+    effect: msg
+    message: |
+      NEVER compute tank geometry (volume, surface area, weld inches, radii, material weight)
+      on the frontend. Always use the backend-provided values:
+        - gallons
+        - surface_area_shell
+        - surface_area_roof
+        - surface_area_bottom
+        - material_lb
+        - weld_inches
+      Keep frontend formulas strictly for UI formatting or totals display.
+
+  - description: Maintain consistent typing for quote results
+    pattern: /src/lib/**
+    effect: msg
+    message: |
+      When modifying quote-related components or stores:
+      - Ensure QuoteResult type matches backend `QuoteResult` Pydantic model
+      - Do not remove or rename fields without also updating backend
+      - Do not re-calc values already supplied by backend
+
+  - description: Prevent AI from changing environment variable handling
+    pattern: .env* | /src/lib/config/*
+    effect: no-edit-unless-requested
+
+  - description: Enforce SvelteKit best practices
+    effect: msg
+    message: |
+      For UI components:
+      - Prefer +page.svelte / +page.ts load functions
+      - Use Svelte stores for persistent quote state
+      - Keep components pure (no business logic)
+      - Use Tailwind for styling
+      - When in doubt, prefer simple readable Svelte over complex abstractions
+
+  - description: Restrict changes to 3D viewer unless requested
+    pattern: /src/lib/components/viewer/**
+    effect: no-edit-unless-requested
+
+  - description: When modifying API handlers, maintain current proxy flow
+    pattern: /src/routes/api/**
+    effect: msg
+    message: |
+      All /api/* frontend endpoints should:
+      1. Only forward requests to the backend via PUBLIC_API_BASE
+      2. Not contain business logic
+      3. Never reprocess geometry or pricing data
+
+  - description: Protect quote UI layout from large structural rewrites
+    pattern: /src/routes/pricing/**
+    effect: no-edit-unless-requested
+
+  - description: Automatically format code suggestions
+    effect: apply-format-on-save

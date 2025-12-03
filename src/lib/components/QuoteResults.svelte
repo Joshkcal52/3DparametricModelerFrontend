@@ -2,6 +2,11 @@
   import type { QuoteResult } from '$lib/types';
   import LineItemsTable from './LineItemsTable.svelte';
   export let quote: QuoteResult | null = null;
+
+  const formatNumber = (value: number | null | undefined, options?: Intl.NumberFormatOptions): string => {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '-';
+    return value.toLocaleString(undefined, options);
+  };
 </script>
 
 {#if quote}
@@ -11,7 +16,7 @@
       <p class="text-sm text-zinc-600">Detailed breakdown of your tank quote</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div class="grid grid-cols-1 gap-6 mb-6 md:grid-cols-3">
       <div class="space-y-3">
         <h4 class="text-sm font-semibold text-black uppercase tracking-wide mb-3">Specifications</h4>
         <div class="grid gap-2.5 text-sm">
@@ -21,15 +26,50 @@
           </div>
           <div class="flex justify-between">
             <span class="text-zinc-600">Outer radius:</span>
-            <span class="font-medium text-black">{(quote.outer_radius ?? 0).toFixed(2)} in</span>
+            <span class="font-medium text-black">
+              {formatNumber(quote.outer_radius, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} in
+            </span>
           </div>
           <div class="flex justify-between">
             <span class="text-zinc-600">Inner radius:</span>
-            <span class="font-medium text-black">{(quote.inner_radius ?? 0).toFixed(2)} in</span>
+            <span class="font-medium text-black">
+              {formatNumber(quote.inner_radius, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} in
+            </span>
           </div>
           <div class="flex justify-between">
             <span class="text-zinc-600">Weld inches:</span>
-            <span class="font-medium text-black">{(quote.weld_inches ?? 0).toFixed(1)} in</span>
+            <span class="font-medium text-black">
+              {formatNumber(quote.weld_inches, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} in
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <h4 class="text-sm font-semibold text-black uppercase tracking-wide mb-3">Geometry</h4>
+        <div class="grid gap-2.5 text-sm">
+          <div class="flex justify-between">
+            <span class="text-zinc-600">Nominal volume:</span>
+            <span class="font-medium text-black">
+              {formatNumber(quote.gallons, { maximumFractionDigits: 0 })} gal
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-zinc-600">Shell surface area:</span>
+            <span class="font-medium text-black">
+              {formatNumber(quote.surface_area_shell, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} in²
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-zinc-600">Roof surface area:</span>
+            <span class="font-medium text-black">
+              {formatNumber(quote.surface_area_roof, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} in²
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-zinc-600">Bottom surface area:</span>
+            <span class="font-medium text-black">
+              {formatNumber(quote.surface_area_bottom, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} in²
+            </span>
           </div>
         </div>
       </div>

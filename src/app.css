@@ -73,34 +73,116 @@
     @apply cursor-pointer transition-colors;
   }
 
-  /* CoyoteCAD title with industrial font and metallic shine */
+  /* CoyoteCAD title with industrial font and metallic shine (inverted colors),
+     now with an animated "shining" glare wipe for extra metallic pop */
   .coyote-title {
+    position: relative;
+    display: inline-block;
     font-family: 'Ethnocentric', monospace;
-    font-weight: 700;
-    letter-spacing: 0.05em;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    font-size: 2.2rem;
     background: linear-gradient(
-      90deg,
-      #000000 0%,
-      #334155 30%,
-      #475569 45%,
-      #cbd5e1 50%,
-      #475569 55%,
-      #1e293b 70%,
-      #000000 70%
+      112deg,
+      #f1faff 0%,
+      #cbd5e1 8%,
+      #cfdae3 20%,
+      #9299a2 32%,
+      #e0e4e8 39%,
+      #f1faff 43%,
+      #bfc5cb 47%,
+      #7c8288 51%,
+      #353c45 54%,
+      #181e24 58%,
+      #353c45 67%,
+      #7c8fa6 76%,
+      #e0e4e8 88%,
+      #f1faff 100%
     );
-    background-size: 400% 100%;
+    background-size: 300% 200%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: shine-right 40s ease-in-out infinite;
+    color: transparent;
+    text-shadow:
+      0 2px 8px rgba(220,230,240,0.4),
+      0 1px 0 #222a31,
+      0 -1px 0 #fff,
+      1px 0px 0 #5d6172;
+    /* Animate gradient for a moving reflection band */
+    animation: metallic-shine 3.2s cubic-bezier(.76,.01,.57,1.02) infinite;
+    /* Use a glare "wipe" via a pseudo-element */
+    overflow: visible;
   }
 
-  @keyframes shine-right {
-    0%, 95% {
-      background-position: -100% 50%;
+  .coyote-title::after {
+    content: "";
+    position: absolute;
+    top: -15%;
+    left: -40%;
+    width: 60%;
+    height: 130%;
+    pointer-events: none;
+    background: linear-gradient(
+      113deg,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0.45) 45%,
+      rgba(255,255,255,0.90) 52%,
+      rgba(255,255,255,0.55) 58%,
+      rgba(255,255,255,0) 100%
+    );
+    filter: blur(1.5px);
+    opacity: 0.61;
+    mix-blend-mode: lighten;
+    animation: shine-glare 3.2s cubic-bezier(.76,.01,.57,1.02) infinite;
+    z-index: 2;
+  }
+
+  @keyframes metallic-shine {
+    0% {
+      background-position: 0% 50%;
     }
-    2.5%, 5% {
-      background-position: 200% 50%;
+    55% {
+      background-position: 70% 50%;
+    }
+    80% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes shine-glare {
+    0% {
+      left: -50%;
+      opacity: 0.05;
+    }
+    6% {
+      opacity: 0.45;
+    }
+    9% {
+      opacity: 0.8;
+    }
+    12% {
+      opacity: 0.48;
+    }
+    16% {
+      opacity: 0.2;
+    }
+    18% {
+      opacity: 0.05;
+    }
+    19% {
+      opacity: 0;
+    }
+    23% {
+      left: 110%;
+      opacity: 0;
+    }
+    100% {
+      left: 110%;
+      opacity: 0;
     }
   }
 }

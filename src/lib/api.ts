@@ -165,6 +165,10 @@ export async function requestQuote(body: TankParams): Promise<QuoteResult> {
     outer_radius: data.outer_radius ?? 0,
     inner_radius: data.inner_radius ?? 0,
     weld_inches: data.weld_inches ?? 0,
+    gallons: data.gallons ?? 0,
+    surface_area_shell: data.surface_area_shell ?? 0,
+    surface_area_roof: data.surface_area_roof ?? 0,
+    surface_area_bottom: data.surface_area_bottom ?? 0,
     material_key: data.material_key || '',
     line_items: data.line_items || []
   };

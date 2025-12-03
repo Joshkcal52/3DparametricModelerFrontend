@@ -38,6 +38,10 @@ export interface QuoteResult {
   outer_radius: number;
   inner_radius: number;
   weld_inches: number;
+  gallons: number;
+  surface_area_shell: number;
+  surface_area_roof: number;
+  surface_area_bottom: number;
   material_key: string;
   line_items: LineItem[];
 }
