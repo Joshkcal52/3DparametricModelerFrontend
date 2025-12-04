@@ -56,19 +56,19 @@
           <div class="flex justify-between">
             <span class="text-zinc-600">Shell surface area:</span>
             <span class="font-medium text-black">
-              {formatNumber(quote.surface_area_shell, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} in²
+              {formatNumber(quote.surface_area_shell, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ft²
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-zinc-600">Roof surface area:</span>
             <span class="font-medium text-black">
-              {formatNumber(quote.surface_area_roof, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} in²
+              {formatNumber(quote.surface_area_roof, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ft²
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-zinc-600">Bottom surface area:</span>
             <span class="font-medium text-black">
-              {formatNumber(quote.surface_area_bottom, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} in²
+              {formatNumber(quote.surface_area_bottom, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ft²
             </span>
           </div>
         </div>
